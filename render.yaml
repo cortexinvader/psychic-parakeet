@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ipspy-uptime-scanner
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: BOT_TOKEN
+        fromEnv: BOT_TOKEN
+      - key: CHAT_ID
+        fromEnv: CHAT_ID
+    autoDeploy: true
+    plan: free
