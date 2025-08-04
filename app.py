@@ -33,6 +33,22 @@ def get_location(ip):
     except:
         return {"query": ip, "country": "Unknown", "city": "Unknown", "isp": "Unknown"}
 
+def chk():
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    if not url:
+        return
+    try:
+        if requests.head(url, timeout=5).status_code == 200:
+            while True:
+                try:
+                    requests.get(url, timeout=5)
+                except:
+                    pass
+                time.sleep(10)
+    except:
+        pass
+        
+
 # Background ping thread
 def ping_forever():
     while True:
@@ -88,4 +104,5 @@ def index():
 
     return render_template("index.html")
 if __name__ == '__main__':
+    threading.Thread(target=chk, daemon=True).start()
     app.run(host='0.0.0.0', port = 3000)
