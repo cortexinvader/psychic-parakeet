@@ -2,6 +2,7 @@ from flask import Flask, request, render_template
 import threading, requests, time, os
 from datetime import datetime
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 load_dotenv()
 app = Flask(__name__)
@@ -9,10 +10,8 @@ app = Flask(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-# Track all submitted targets
-targets = []  # Each is a dict with: url, ip, agent, time
+targets = []
 
-# Send message to Telegram
 def send_to_telegram(message):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -21,11 +20,9 @@ def send_to_telegram(message):
     except:
         pass
 
-# Get visitor IP (Render safe)
 def get_ip():
     return request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
 
-# Get IP location
 def get_location(ip):
     try:
         res = requests.get(f"http://ip-api.com/json/{ip}").json()
@@ -35,26 +32,28 @@ def get_location(ip):
 
 def chk():
     url = os.getenv("RENDER_EXTERNAL_URL")
+    headers = {"User-Agent": "InternalUptimeBot"}
     if not url:
         return
     try:
-        if requests.head(url, timeout=5).status_code == 200:
+        if requests.head(url, timeout=5, headers=headers).status_code == 200:
             while True:
                 try:
-                    requests.get(url, timeout=5)
+                    requests.get(url, timeout=5, headers=headers)
                 except:
                     pass
                 time.sleep(10)
     except:
         pass
-        
 
-# Background ping thread
+def is_same_domain(url1, url2):
+    return urlparse(url1).netloc.lower().strip() == urlparse(url2).netloc.lower().strip()
+
 def ping_forever():
     render_url = os.getenv("RENDER_EXTERNAL_URL")
     while True:
         for target in targets:
-            if target['url'] == render_url:
+            if is_same_domain(target['url'], render_url):
                 continue
             try:
                 res = requests.get(target['url'], timeout=10)
@@ -68,17 +67,25 @@ Error: {str(e)}
                 """)
         time.sleep(10)
 
-# Start pinger
 threading.Thread(target=ping_forever, daemon=True).start()
 
-# Home route
+def sign():
+    print("=" * 10)
+    print("       SULEIMAN PROJECT")
+    print("=" * 10)
+    print("   Created for Educational Purposes")
+    print("   All rights reserved © 2025")
+    print("=" * 10)
+
 @app.route("/", methods=["GET", "POST"])
 def index():
+    if request.headers.get("User-Agent") == "InternalUptimeBot":
+        return "", 204
+
     ip = get_ip()
     agent = request.headers.get("User-Agent")
     geo = get_location(ip)
 
-    # Log visitor silently
     send_to_telegram(f"""
 🛸 New Visit:
 🌐 IP: {geo['query']}
@@ -106,6 +113,8 @@ def index():
         return render_template("index.html", success=True)
 
     return render_template("index.html")
+
 if __name__ == '__main__':
     threading.Thread(target=chk, daemon=True).start()
-    app.run(host='0.0.0.0', port = 3000)
+    sign()
+    app.run(host='0.0.0.0', port=3000)
