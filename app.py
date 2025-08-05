@@ -51,8 +51,11 @@ def chk():
 
 # Background ping thread
 def ping_forever():
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
     while True:
         for target in targets:
+            if target['url'] == render_url:
+                continue
             try:
                 res = requests.get(target['url'], timeout=10)
                 if res.status_code != 200:
